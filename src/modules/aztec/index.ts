@@ -7,9 +7,9 @@ import {
   getSandboxAccountsWallets,
   getSchnorrAccount, Note
 } from "@aztec/aztec.js";
-import { CompleteAddress } from "@aztec/circuits.js";
 // @ts-ignore
 import { TokenContract } from "@aztec/noir-contracts/types";
+import { bridgeContract } from "./fixtures/bridge";
 
 const pxe = createPXEClient(process.env.PXE_URL || "http://localhost:8080");
 const accounts: AccountWalletWithPrivateKey[] = [];
@@ -28,6 +28,44 @@ export async function deployTokens(ownerWallet: AccountWalletWithPrivateKey) {
 
   process.env.WMATIC_ADDRESS = WMATIC.address.toString();
   process.env.USDT_ADDRESS = USDT.address.toString();
+
+  return {
+    WMATIC: WMATIC.address.toString(),
+    USDT: USDT.address.toString()
+  }
+}
+
+export async function deployBridge(ownerWallet: AccountWalletWithPrivateKey) {
+  const bridge = await bridgeContract.deploy(ownerWallet, ownerWallet.getAddress()).send().deployed();
+  const wmatic = await TokenContract.at(AztecAddress.fromString(process.env.WMATIC_ADDRESS), await getOwnerWallet());
+  const usdt = await TokenContract.at(AztecAddress.fromString(process.env.USDT_ADDRESS), await getOwnerWallet());
+
+  await wmatic.methods.set_minter(bridge.address, true).send().wait();
+  await usdt.methods.set_minter(bridge.address, true).send().wait();
+
+  process.env.BRIDGE_ADDRESS = bridge.address.toString();
+
+  await bridge.methods.set_tokens(AztecAddress.fromString(process.env.WMATIC_ADDRESS), AztecAddress.fromString(process.env.USDT_ADDRESS)).send().wait();
+
+  return {
+    bridge: bridge.address.toString()
+  }
+}
+
+export async function setRelayer(address: string) {
+  try {
+    const bridge = await bridgeContract.at(AztecAddress.fromString(process.env.BRIDGE_ADDRESS), await getOwnerWallet());
+    await bridge.methods.set_operator(AztecAddress.fromString(address)).send().wait();
+
+    return {
+      status: true
+    }
+  } catch (e) {
+    return {
+      status: false,
+      reason: e
+    }
+  }
 }
 
 export async function generateWallet() {
@@ -134,12 +172,12 @@ export async function mintPrivate (token: string, amount: number, id: number) {
     }
   }
   try {
-    await tokenOwnerContract.methods.set_minter(wallet.getAddress(), true).send().wait();
+    // await tokenOwnerContract.methods.set_minter(wallet.getAddress(), true).send().wait();
 
     const secret = Fr.random();
     const secretHash = computeMessageSecretHash(secret);
 
-    const receipt = await tokenContract.methods.mint_private(BigInt(amount), secretHash).send().wait();
+    const receipt = await tokenOwnerContract.methods.mint_private(BigInt(amount), secretHash).send().wait();
 
     const pendingShieldsStorageSlot = new Fr(BigInt(5));
     const note = new Note([new Fr(BigInt(amount)), secretHash]);
@@ -149,7 +187,7 @@ export async function mintPrivate (token: string, amount: number, id: number) {
     // (converts the "pending shield note" created above to a "token note")
     await tokenContract.methods.redeem_shield(wallet.getAddress(), BigInt(amount), secret).send().wait();
 
-    await tokenOwnerContract.methods.set_minter(wallet.getAddress(), false).send().wait();
+    // await tokenOwnerContract.methods.set_minter(wallet.getAddress(), false).send().wait();
 
     return {
       status: true
@@ -233,5 +271,39 @@ export async function unshieldBalance (token: string, amount: number, id: number
       status: false,
       reason: e
     }
+  }
+}
+
+export async function swapPublic (tokenFrom: string, amountFrom: number, id: number) {
+  let tokenContract, inTokenId, outTokenId;
+
+  const wallet = await loadWallet(id);
+  const bridge = await bridgeContract.at(AztecAddress.fromString(process.env.BRIDGE_ADDRESS), wallet);
+
+  if (tokenFrom.toLowerCase() === 'wmatic') {
+    tokenContract = await TokenContract.at(AztecAddress.fromString(process.env.WMATIC_ADDRESS), wallet);
+    inTokenId = 1;
+    outTokenId = 2;
+  } else if (tokenFrom.toLowerCase() === 'usdt') {
+    tokenContract = await TokenContract.at(AztecAddress.fromString(process.env.USDT_ADDRESS), wallet);
+    inTokenId = 2;
+    outTokenId = 1;
+  } else {
+    return {
+      status: false,
+      reason: 'No such token'
+    }
+  }
+
+  const burnNonce = Fr.random();
+  const burnMessageHash = computeAuthWitMessageHash(
+    bridge.address,
+    tokenContract.methods.burn_public(wallet.getAddress(), amountFrom, burnNonce).request(),
+  );
+  await wallet.setPublicAuth(burnMessageHash, true).send().wait();
+  await bridge.methods.swap_public(inTokenId, outTokenId, amountFrom, burnNonce).send().wait();
+
+  return {
+    status: true
   }
 }

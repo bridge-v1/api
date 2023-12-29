@@ -12,6 +12,8 @@ import {
   unshieldBalance,
   mintPublic,
   mintPrivate,
+  deployBridge,
+  swapPublic, setRelayer
 } from "./modules/aztec";
 import { BarretenbergSync } from "@aztec/bb.js";
 
@@ -27,58 +29,87 @@ app.get('/ownerWallet', async (req: Request, res: Response) => {
   const address = (await getOwnerWallet()).getAddress().toString();
 
   res.send({
-    address
+    status: true,
+    data: address
   });
 });
 
 app.post('/deployTokens', async (req: Request, res: Response) => {
   const ownerWallet = await getOwnerWallet();
-  await deployTokens(ownerWallet);
+  const addresses = await deployTokens(ownerWallet);
 
   res.send({
-    status: true
+    status: true,
+    data: addresses
   });
+});
+
+app.post('/deployBridge', async (req: Request, res: Response) => {
+  const ownerWallet = await getOwnerWallet();
+  const address = await deployBridge(ownerWallet);
+
+  res.send({
+    status: true,
+    data: address
+  });
+});
+
+app.get('/config', async (req: Request, res: Response) => {
+  res.send({
+    status: true,
+    data: {
+      WMATIC: process.env.WMATIC_ADDRESS,
+      USDT: process.env.USDT_ADDRESS,
+      bridge: process.env.BRIDGE_ADDRESS,
+    }
+  });
+});
+
+app.post('/setRelayer', async (req: Request, res: Response) => {
+  const status = await setRelayer(req.body.relayerAddress);
+
+  res.send(status);
 });
 
 app.post('/generateWallet', async (req: Request, res: Response) => {
   const wallet = await generateWallet();
 
-  res.send(wallet);
+  res.send({
+    status: true,
+    data: wallet
+  });
 });
 
 app.post('/aztecBalances', async (req: Request, res: Response) => {
-  console.log(`POST to /aztecBalances with ${JSON.stringify(req.body)}`);
   const publicBalances = await getPublicBalances(req.body.walletId);
   const privateBalances = await getPrivateBalances(req.body.walletId);
 
   res.send({
-    public: publicBalances,
-    private: privateBalances
+    status: true,
+    data: {
+      public: publicBalances,
+      private: privateBalances
+    }
   });
 });
 
 app.post('/publicBalances', async (req: Request, res: Response) => {
   const balances = await getPublicBalances(req.body.walletId);
 
-  res.send(balances);
+  res.send({
+    status: true,
+    data: balances
+  });
 });
 
 app.post('/privateBalances', async (req: Request, res: Response) => {
   const balances = await getPrivateBalances(req.body.walletId);
 
-  res.send(balances);
-});
-
-app.get('/bridgeBalances', async (req: Request, res: Response) => {
-  // const balances = await getPrivateBalances(req.body.walletId);
-  //
-  // TODO: endpoint!
   res.send({
-    WMATIC: "0",
-    USDT: "0"
+    status: true,
+    data: balances
   });
 });
-
 
 app.post('/mintPublic', async (req: Request, res: Response) => {
   const status = await mintPublic(req.body.token, req.body.amount, req.body.walletId);
@@ -95,13 +126,25 @@ app.post('/mintPrivate', async (req: Request, res: Response) => {
 app.post('/shieldBalance', async (req: Request, res: Response) => {
   const balances = await shieldBalance(req.body.token, req.body.amount, req.body.walletId);
 
-  res.send(balances);
+  res.send({
+    status: true,
+    data: balances
+  });
 });
 
 app.post('/unshieldBalance', async (req: Request, res: Response) => {
   const balances = await unshieldBalance(req.body.token, req.body.amount, req.body.walletId);
 
-  res.send(balances);
+  res.send({
+    status: true,
+    data: balances
+  });
+});
+
+app.post('/swapPublic', async (req: Request, res: Response) => {
+  const status = await swapPublic(req.body.tokenFrom, req.body.amountFrom, req.body.walletId);
+
+  res.send(status);
 });
 
 app.listen(port, async () => {
