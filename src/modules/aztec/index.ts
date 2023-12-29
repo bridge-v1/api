@@ -55,10 +55,13 @@ export async function deployBridge(ownerWallet: AccountWalletWithPrivateKey) {
 export async function setRelayer(address: string) {
   try {
     const bridge = await bridgeContract.at(AztecAddress.fromString(process.env.BRIDGE_ADDRESS), await getOwnerWallet());
-    await bridge.methods.set_operator(AztecAddress.fromString(address)).send().wait();
+    const tx = await bridge.methods.set_operator(AztecAddress.fromString(address)).send().wait();
 
     return {
-      status: true
+      status: true,
+      data: {
+        txStatus: tx.status
+      }
     }
   } catch (e) {
     return {

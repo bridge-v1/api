@@ -67,7 +67,6 @@ app.get('/config', async (req: Request, res: Response) => {
 
 app.post('/setRelayer', async (req: Request, res: Response) => {
   const status = await setRelayer(req.body.relayerAddress);
-
   res.send(status);
 });
 
