@@ -72,71 +72,103 @@ app.post('/setRelayer', async (req: Request, res: Response) => {
 });
 
 app.post('/generateWallet', async (req: Request, res: Response) => {
-  const wallet = await generateWallet();
+  try {
+    const wallet = await generateWallet();
 
-  res.send({
-    status: true,
-    data: wallet
-  });
+    res.send({
+      status: true,
+      data: wallet
+    });
+  } catch (e) {
+    console.log(e);
+  }
 });
 
 app.post('/aztecBalances', async (req: Request, res: Response) => {
-  const publicBalances = await getPublicBalances(req.body.walletId);
-  const privateBalances = await getPrivateBalances(req.body.walletId);
+  try {
+    const publicBalances = await getPublicBalances(req.body.walletId);
+    const privateBalances = await getPrivateBalances(req.body.walletId);
 
-  res.send({
-    status: true,
-    data: {
-      public: publicBalances,
-      private: privateBalances
-    }
-  });
+    res.send({
+      status: true,
+      data: {
+        public: publicBalances,
+        private: privateBalances
+      }
+    });
+  } catch (e) {
+    console.log(e);
+  }
 });
 
 app.get('/bridgeBalances', async (req: Request, res: Response) => {
-  const balances = await getBridgeBalances();
+  try {
+    const balances = await getBridgeBalances();
 
-  res.send({
-    status: true,
-    data: balances
-  });
+    res.send({
+      status: true,
+      data: balances
+    });
+  } catch (e) {
+    console.log(e);
+  }
 });
 
 
 app.post('/mintPublic', async (req: Request, res: Response) => {
-  const status = await mintPublic(req.body.token, req.body.amount, req.body.walletId);
+  try {
+    const status = await mintPublic(req.body.token, req.body.amount, req.body.walletId);
 
-  res.send(status);
+    res.send(status);
+  } catch (e) {
+    console.log(e);
+  }
 });
 
 app.post('/mintPrivate', async (req: Request, res: Response) => {
-  const status = await mintPrivate(req.body.token, req.body.amount, req.body.walletId);
+  try {
+    const status = await mintPrivate(req.body.token, req.body.amount, req.body.walletId);
 
-  res.send(status);
+    res.send(status);
+  } catch (e) {
+    console.log(e);
+  }
 });
 
 app.post('/shieldBalance', async (req: Request, res: Response) => {
-  const balances = await shieldBalance(req.body.token, req.body.amount, req.body.walletId);
+  try {
+    const balances = await shieldBalance(req.body.token, req.body.amount, req.body.walletId);
 
-  res.send({
-    status: true,
-    data: balances
-  });
+    res.send({
+      status: true,
+      data: balances
+    });
+  } catch (e) {
+    console.log(e);
+  }
 });
 
 app.post('/unshieldBalance', async (req: Request, res: Response) => {
-  const balances = await unshieldBalance(req.body.token, req.body.amount, req.body.walletId);
+  try {
+    const balances = await unshieldBalance(req.body.token, req.body.amount, req.body.walletId);
 
-  res.send({
-    status: true,
-    data: balances
-  });
+    res.send({
+      status: true,
+      data: balances
+    });
+  } catch (e) {
+    console.log(e);
+  }
 });
 
 app.post('/swapPublic', async (req: Request, res: Response) => {
-  const status = await swapPublic(req.body.tokenFrom, req.body.amountFrom, req.body.walletId);
+  try {
+    const status = await swapPublic(req.body.tokenFrom, req.body.amountFrom, req.body.walletId);
 
-  res.send(status);
+    res.send(status);
+  } catch (e) {
+    console.log(e);
+  }
 });
 
 app.listen(port, async () => {
