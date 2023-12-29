@@ -16,6 +16,7 @@ import {
   swapPublic, setRelayer
 } from "./modules/aztec";
 import { BarretenbergSync } from "@aztec/bb.js";
+import { getBridgeBalances } from "./modules/evm";
 
 dotenv.config();
 
@@ -92,8 +93,8 @@ app.post('/aztecBalances', async (req: Request, res: Response) => {
   });
 });
 
-app.post('/publicBalances', async (req: Request, res: Response) => {
-  const balances = await getPublicBalances(req.body.walletId);
+app.get('/bridgeBalances', async (req: Request, res: Response) => {
+  const balances = await getBridgeBalances();
 
   res.send({
     status: true,
@@ -101,14 +102,6 @@ app.post('/publicBalances', async (req: Request, res: Response) => {
   });
 });
 
-app.post('/privateBalances', async (req: Request, res: Response) => {
-  const balances = await getPrivateBalances(req.body.walletId);
-
-  res.send({
-    status: true,
-    data: balances
-  });
-});
 
 app.post('/mintPublic', async (req: Request, res: Response) => {
   const status = await mintPublic(req.body.token, req.body.amount, req.body.walletId);
