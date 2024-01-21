@@ -4,11 +4,14 @@ import {
   createPXEClient, ExtendedNote,
   Fq,
   Fr,
-  getSandboxAccountsWallets,
-  getSchnorrAccount, Note
+  Note
 } from "@aztec/aztec.js";
 // @ts-ignore
-import { TokenContract } from "@aztec/noir-contracts/types";
+import { getInitialTestAccountsWallets } from "@aztec/accounts/testing";
+// @ts-ignore
+import { getSingleKeyAccount } from "@aztec/accounts/single_key";
+// @ts-ignore
+import { TokenContract } from "@aztec/noir-contracts/Token";
 import { bridgeContract } from "./fixtures/bridge";
 
 const pxe = createPXEClient(process.env.PXE_URL || "http://localhost:8080");
@@ -17,14 +20,14 @@ const accounts: AccountWalletWithPrivateKey[] = [];
 
 export async function getOwnerWallet() {
   let ownerWallet: AccountWalletWithPrivateKey;
-  [ownerWallet] = await getSandboxAccountsWallets(pxe);
+  [ownerWallet] = await getInitialTestAccountsWallets(pxe);
 
   return ownerWallet;
 }
 
 export async function deployTokens(ownerWallet: AccountWalletWithPrivateKey) {
-  const WMATIC = await TokenContract.deploy(ownerWallet, ownerWallet.getAddress()).send().deployed();
-  const USDT = await TokenContract.deploy(ownerWallet, ownerWallet.getAddress()).send().deployed();
+  const WMATIC = await TokenContract.deploy(ownerWallet, ownerWallet.getAddress(), 'Wrapped MATIC', 'WMATIC', 0).send().deployed();
+  const USDT = await TokenContract.deploy(ownerWallet, ownerWallet.getAddress(), 'Tether USD', 'USDT', 0).send().deployed();
 
   process.env.WMATIC_ADDRESS = WMATIC.address.toString();
   process.env.USDT_ADDRESS = USDT.address.toString();
@@ -72,13 +75,8 @@ export async function setRelayer(address: string) {
 }
 
 export async function generateWallet() {
-  const encryptionPrivateKey = Fq.random();
-  const signingPrivateKey = Fq.random();
-  const wallet = await getSchnorrAccount(
-    pxe,
-    encryptionPrivateKey,
-    signingPrivateKey
-  ).waitDeploy();
+  const privateKey = Fq.random();
+  const wallet = await getSingleKeyAccount(pxe, privateKey).waitDeploy();
 
   accounts.push(wallet)
 
